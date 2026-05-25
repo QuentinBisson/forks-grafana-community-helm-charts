@@ -1,6 +1,7 @@
 # $schema: https://raw.githubusercontent.com/helm-unittest/helm-unittest/refs/heads/main/schema/helm-testsuite.json
 suite: compactor Deployment
 templates:
+  - lib/workload.tpl
   - compactor/deployment-compactor.yaml
   - configmap-tempo.yaml
 
@@ -329,3 +330,61 @@ tests:
     asserts:
       - notExists:
           path: spec.template.spec.dnsConfig
+
+  - it: should not render when backendScheduler is enabled
+    template: compactor/deployment-compactor.yaml
+    set:
+      backendScheduler.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders memberlist label on Deployment metadata
+    template: compactor/deployment-compactor.yaml
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/part-of"]
+          value: memberlist
+
+  - it: renders minReadySeconds from compactor.minReadySeconds
+    template: compactor/deployment-compactor.yaml
+    set:
+      compactor.minReadySeconds: 20
+    asserts:
+      - equal:
+          path: spec.minReadySeconds
+          value: 20
+
+  - it: renders revisionHistoryLimit from tempo.revisionHistoryLimit
+    template: compactor/deployment-compactor.yaml
+    set:
+      tempo.revisionHistoryLimit: 5
+    asserts:
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 5
+
+  - it: renders strategy from compactor.strategy
+    template: compactor/deployment-compactor.yaml
+    set:
+      compactor.strategy:
+        rollingUpdate:
+          maxSurge: 1
+          maxUnavailable: 0
+    asserts:
+      - equal:
+          path: spec.strategy.rollingUpdate.maxSurge
+          value: 1
+      - equal:
+          path: spec.strategy.rollingUpdate.maxUnavailable
+          value: 0
+
+  - it: renders Deployment annotations from compactor.annotations
+    template: compactor/deployment-compactor.yaml
+    set:
+      compactor.annotations:
+        custom-annotation: value
+    asserts:
+      - equal:
+          path: metadata.annotations["custom-annotation"]
+          value: value
