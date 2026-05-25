@@ -1,0 +1,106 @@
+# $schema: https://raw.githubusercontent.com/helm-unittest/helm-unittest/refs/heads/main/schema/helm-testsuite.json
+suite: compactor Service
+templates:
+  - compactor/service-compactor.yaml
+
+tests:
+  - it: renders a ClusterIP Service with the correct name
+    asserts:
+      - equal:
+          path: kind
+          value: Service
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-tempo-compactor
+      - equal:
+          path: spec.type
+          value: ClusterIP
+
+  - it: renders the http-metrics port
+    asserts:
+      - contains:
+          path: spec.ports
+          content:
+            name: http-metrics
+            port: 3200
+            targetPort: http-metrics
+            protocol: TCP
+
+  - it: does not render a grpc port by default
+    asserts:
+      - equal:
+          path: spec.ports
+          value:
+            - name: http-metrics
+              port: 3200
+              targetPort: http-metrics
+              protocol: TCP
+
+  - it: applies component labels
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: compactor
+
+  - it: applies ipFamilies and ipFamilyPolicy from tempo.service
+    asserts:
+      - equal:
+          path: spec.ipFamilies
+          value:
+            - IPv4
+      - equal:
+          path: spec.ipFamilyPolicy
+          value: SingleStack
+
+  - it: applies custom ipFamilies when overridden
+    set:
+      tempo.service.ipFamilies:
+        - IPv6
+      tempo.service.ipFamilyPolicy: SingleStack
+    asserts:
+      - equal:
+          path: spec.ipFamilies
+          value:
+            - IPv6
+
+  - it: applies service annotations
+    set:
+      compactor.service.annotations:
+        custom-annotation: value
+    asserts:
+      - equal:
+          path: metadata.annotations["custom-annotation"]
+          value: value
+
+  - it: applies service labels
+    set:
+      compactor.service.labels:
+        custom-label: value
+    asserts:
+      - equal:
+          path: metadata.labels["custom-label"]
+          value: value
+
+  - it: applies custom service type
+    set:
+      compactor.service.type: NodePort
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+
+  - it: selector matches component labels
+    asserts:
+      - equal:
+          path: spec.selector["app.kubernetes.io/name"]
+          value: tempo
+      - equal:
+          path: spec.selector["app.kubernetes.io/component"]
+          value: compactor
+
+  - it: does not render when backendScheduler is enabled
+    set:
+      backendScheduler.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
