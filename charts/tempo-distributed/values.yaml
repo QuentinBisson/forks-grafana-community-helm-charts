@@ -1271,6 +1271,20 @@ compactor:
   service:
     # -- Annotations for compactor service
     annotations: {}
+  # -- ServiceAccount configuration for the compactor. When create is false, the pod uses the chart-level serviceAccount.
+  serviceAccount:
+    # -- Specifies whether a per-component ServiceAccount should be created
+    create: false
+    # -- The name of the ServiceAccount. If not set and create is true, a name is generated using the component fullname.
+    name: null
+    # -- Labels for the ServiceAccount
+    labels: {}
+    # -- Annotations for the ServiceAccount
+    annotations: {}
+    # -- Automount API credentials for the ServiceAccount
+    automountServiceAccountToken: false
+    # -- Image pull secrets for the ServiceAccount
+    imagePullSecrets: []
   dnsConfigOverides:
     enabled: false
     dnsConfig:
